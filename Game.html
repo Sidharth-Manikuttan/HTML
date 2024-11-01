@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Color Memory Challenge</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #2c3e50;
+            font-family: 'Arial', sans-serif;
+            flex-direction: column;
+            color: white;
+        }
+        #game-container {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            grid-gap: 15px;
+            perspective: 1000px;
+        }
+        .color-tile {
+            width: 100px;
+            height: 100px;
+            background-color: #34495e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            position: relative;
+            border-radius: 10px;
+        }
+        .color-tile.flipped {
+            transform: rotateY(180deg);
+        }
+        .tile-back, .tile-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+        .tile-back {
+            background-color: #34495e;
+        }
+        .tile-front {
+            background-color: white;
+            transform: rotateY(180deg);
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+        }
+        #score, #timer {
+            margin: 20px 0;
+            font-size: 24px;
+        }
+        #game-status {
+            margin-top: 20px;
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="timer">Time: 60s</div>
+    <div id="game-container"></div>
+    <div id="game-status"></div>
+
+    <script>
+        class ColorMemoryGame {
+            constructor() {
+                this.gameContainer = document.getElementById('game-container');
+                this.scoreDisplay = document.getElementById('score');
+                this.timerDisplay = document.getElementById('timer');
+                this.statusDisplay = document.getElementById('game-status');
+                this.colors = [
+                    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FDCB6E', 
+                    '#6C5CE7', '#A8E6CF', '#FF8ED4', '#FAD390'
+                ];
+                this.score = 0;
+                this.timeLeft = 60;
+                this.selectedTiles = [];
+                this.matchedPairs = 0;
+                this.timer = null;
+                this.initGame();
+            }
+
+            generateColorPairs() {
+                const colorPairs = [...this.colors, ...this.colors]
+                    .sort(() => Math.random() - 0.5);
+                return colorPairs;
+            }
+
+            initGame() {
+                const colorPairs = this.generateColorPairs();
+                this.gameContainer.innerHTML = '';
+
+                colorPairs.forEach((color, index) => {
+                    const tile = document.createElement('div');
+                    tile.classList.add('color-tile');
+                    tile.dataset.color = color;
+
+                    const tileFront = document.createElement('div');
+                    tileFront.classList.add('tile-front');
+                    tileFront.textContent = '?';
+
+                    const tileBack = document.createElement('div');
+                    tileBack.classList.add('tile-back');
+                    tileBack.style.backgroundColor = color;
+
+                    tile.appendChild(tileFront);
+                    tile.appendChild(tileBack);
+                    tile.addEventListener('click', () => this.selectTile(tile));
+                    this.gameContainer.appendChild(tile);
+                });
+
+                this.startTimer();
+            }
+
+            selectTile(tile) {
+                if (this.selectedTiles.length >= 2 || 
+                    tile.classList.contains('flipped') || 
+                    this.matchedPairs === 8) return;
+
+                tile.classList.add('flipped');
+                this.selectedTiles.push(tile);
+
+                if (this.selectedTiles.length === 2) {
+                    setTimeout(() => this.checkMatch(), 1000);
+                }
+            }
+
+            checkMatch() {
+                const [tile1, tile2] = this.selectedTiles;
+                const color1 = tile1.dataset.color;
+                const color2 = tile2.dataset.color;
+
+                if (color1 === color2) {
+                    this.matchedPairs++;
+                    this.score += 10;
+                    this.scoreDisplay.textContent = `Score: ${this.score}`;
+                    
+                    if (this.matchedPairs === 8) {
+                        this.endGame(true);
+                    }
+                } else {
+                    tile1.classList.remove('flipped');
+                    tile2.classList.remove('flipped');
+                }
+
+                this.selectedTiles = [];
+            }
+
+            startTimer() {
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    this.timerDisplay.textContent = `Time: ${this.timeLeft}s`;
+
+                    if (this.timeLeft <= 0) {
+                        this.endGame(false);
+                    }
+                }, 1000);
+            }
+
+            endGame(won) {
+                clearInterval(this.timer);
+                this.statusDisplay.textContent = won 
+                    ? `Congratulations! You won with ${this.score} points!` 
+                    : 'Game Over! Try again!';
+                
+                const tiles = document.querySelectorAll('.color-tile');
+                tiles.forEach(tile => {
+                    tile.removeEventListener('click', this.selectTile);
+                });
+            }
+        }
+
+        // Start the game when the page loads
+        const game = new ColorMemoryGame();
+    </script>
+</body>
+</html>
